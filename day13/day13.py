@@ -67,49 +67,50 @@ solution = sum(aI*y) where y % busI = 1, or y = (busI*n + 1) for any int n
    - nI is moderately bounded: 0 to max. product(busI) / busI
 """
 
-def solution(busidmap, busproduct):
-    terms = []
+def firstCoefficient(mult, modulus):
+    # answer * mult % modulus = 1
+    # = (answer % modulus) * (mult % modulus) % modulus.
+    # so we should only need to test answers up to modulus
+    factor = mult % modulus
+    for b in range(modulus):
+        if (b*factor) % modulus == 1:
+            return b
+    return None
+
+def solution2(busidmap, busproduct):
+    naiveTotal = 0
     for offset in busidmap:
         bus = busidmap[offset]
         # (x+offset) % bus = 0; x % bus = (bus - offset) % bus
         a = bus - offset
         # (b * product / bus) % bus = 1
         # b = 1 + (bus * some n we don't know)
-        terms.append((a, bus))
         maxN = int(busproduct / bus)
-        busTermsN = []
-        for n in range(maxN):
-            busTermsN.append(a * (1 + (bus * n)))
-        terms.append(busTermsN)
-    return terms
+        # overall solution part is a * b * maxN
+        # where b * maxN % bus = 1; so
+        b = firstCoefficient(maxN, bus)
+        naiveTotal += (a * b * maxN)
+    return naiveTotal % busproduct
 
-# 3417 % 17 = 0: all mults 17?
-# 3417 % 13 = 11, or (3417 + 2) % 13 = 0
-def check(busidmap, time):
-    for k in sorted(busidmap, key=lambda x: busidmap[x], reverse = True):
-        bus = busidmap[k]
-        if (time + k) % bus != 0:
-            return False
-    return True
+"""
+busidmap = {0:67, 1:7, 2:59, 3:61}
+busproduct = 67*7*59*61
+print(solution2(busidmap, busproduct))
+"""
 
-def iterate(filename):
+def trySolve(filename):
     busids = parseinput2(filename)
+    print(busids)
     busidmap = {}
     factorproduct = 1
     for j in range(len(busids)):
         bus = busids[j]
         if bus is not None:
-            offset = j % bus
-            busidmap[offset] = bus
+            # offsets meant bus ids were getting overwritten, oops
+            busidmap[j] = bus
             factorproduct *= bus
+    print(busidmap.values())
     print(factorproduct)
-    terms = solution(busidmap, factorproduct)
-    print(len(terms))
-    for l in terms:
-        print(len(l))
-    print(busidmap)
-    # print(terms)
-    return False
+    return solution2(busidmap, factorproduct)
 
-print(iterate('testinput1.txt'))
-# print(iterate('input13.txt')) # Too long
+print(trySolve('input13.txt'))
