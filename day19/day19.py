@@ -73,7 +73,6 @@ def parsefile(inputfilename):
                         rules = updaterules(rules, s)
                         rules = condensestrings(rules)
                     stringrules = findstringrules(rules)
-                print(rules[0])
                 rule0 = re.compile(rules[0])
             elif not endRules:
                 (indexRule, value) = parserule(line.strip())
@@ -83,65 +82,73 @@ def parsefile(inputfilename):
                 if rule0.fullmatch(line.strip()):                
                     numMatch += 1
     return numMatch
-print(parsefile('testinput1.txt'))
-print(parsefile('testinput0.txt'))
-print(parsefile('input19.txt'))
+# print(parsefile('testinput1.txt'))
+# print(parsefile('testinput0.txt'))
+# print(parsefile('input19.txt'))
 
 """
-Gonna do part 2 manually: I think regex can handle this nicely.
+Still attempting part 2 with regex
 """
-# rules[indexSub] must be a string
-def updaterules2(rules, indexSub):
-    if indexSub == 8:
-        # 8: 42 -> 8: 42 | 42 8  -> basically (42)+
-        rules[8] = r'(' + rules[42] + r')+'
-    elif indexSub == 11:
-        # 11: 42 31  -> 11: 42 31 | 42 11 31 -> basically 42 (42 31)* 31
-        # 42 and 31 were already string'ed, but 11 hasn't been used yet
-        rules[11] = rules[42] + r'(' + rules[42] + rules[31] + r')*' + rules[31]
-    val = rules[indexSub]
-    for i in rules:
-        if isinstance(rules[i], list):
-            for j in range(len(rules[i])):
-                rule = rules[i][j]
-                if isinstance(rule, list):
-                    for r in range(len(rule)):
-                        if rule[r] == indexSub:
-                            rule[r] = val
-                    rules[i][j] = rule
-    return rules
 
-def allowLoop(inputfilename):
+def parsefileLoops(inputfilename):
     endRules = False
     rules = {}
     rule0 = None
+    rule42 = None
+    rule31 = None
     numMatch = 0
     with open(inputfilename) as f:
         for line in f:
             if len(line.strip()) == 0:
                 endRules = True
                 # recalc rules
-                updatedrules = []
-                while len(updatedrules) < len(rules):
-                    stringrules = findstringrules(rules)
+                stringrules = findstringrules(rules)
+                while len(stringrules) < len(rules):
                     for s in stringrules:
-                        if s not in updatedrules:
-                            rules = updaterules2(rules, s)
-                            rules = condensestrings(rules)
-                            updatedrules.append(s)
-                print(rules[8])
-                print(rules[11])
-                print(rules[0])
+                        rules = updaterules(rules, s)
+                        rules = condensestrings(rules)
+                    stringrules = findstringrules(rules)
+                # 8: 42 becomes 8: 42 | 42 8  -> basically (42)+
+                # 11: 42 31 becomes 11: 42 31 | 42 11 31 -> basically 42 (42 31)* 31
+                # 0: 8 11 = 42 42 31 | 42 42 42 31 | 42 42 ... 42 31 |
+                          # 42 42 42 31 31  | 42 42 42 42 42 31 31 31 31
+                # basically 0 can match any number of 42s followed by
+                # a smaller number of 31s... probably 42+ (42 31)+ should do.
+                rules[0] = r'(' + rules[42] + r')+(' + rules[42] + rules[31] + r')+'
                 rule0 = re.compile(rules[0])
+                rule42 = re.compile(rules[42])
+                rule31 = re.compile(rules[31])
             elif not endRules:
                 (indexRule, value) = parserule(line.strip())
                 rules[indexRule] = value
             else:
-                # individual messages to test
-                if rule0.fullmatch(line.strip()):                
+                # Python implementation is not quite greedy enough...
+                doesMatch = False
+                endIndices42 = []
+                stripline = line.strip()
+                match42 = rule42.match(stripline)
+                while match42 is not None:
+                    endIndex = match42.span()[1]
+                    endIndices42.append(endIndex)
+                    match42 = rule42.match(stripline, endIndex)
+                for endIndex42 in endIndices42:
+                    # search for 31 matches from here on: match leftover str
+                    # and number of matches < number of 42 matches
+                    endIndices31 = []
+                    endIndex = endIndex42
+                    match31 = rule31.match(stripline, endIndex)
+                    while match31 is not None:
+                        endIndex = match31.span()[1]
+                        endIndices31.append(endIndex)
+                        match31 = rule31.match(stripline, endIndex)
+                    if endIndex != endIndex42 and endIndex == len(stripline):
+                        # made it to end of string, now ensure that fewer 32 than 41 matches
+                        if len(endIndices31) <= endIndices42.index(endIndex42):
+                            doesMatch = True
+                if doesMatch:
                     numMatch += 1
     return numMatch
 
-print(parsefile('testinput2.txt'))
-print(allowLoop('testinput2.txt'))
-# print(allowLoop('input19.txt'))
+print(parsefile('testinput2.txt')) # old
+print(parsefileLoops('testinput2.txt')) # new
+print(parsefileLoops('input19.txt'))
