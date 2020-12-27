@@ -93,7 +93,6 @@ Still attempting part 2 with regex
 def parsefileLoops(inputfilename):
     endRules = False
     rules = {}
-    rule0 = None
     rule42 = None
     rule31 = None
     numMatch = 0
@@ -114,8 +113,6 @@ def parsefileLoops(inputfilename):
                           # 42 42 42 31 31  | 42 42 42 42 42 31 31 31 31
                 # basically 0 can match any number of 42s followed by
                 # a smaller number of 31s... probably 42+ (42 31)+ should do.
-                rules[0] = r'(' + rules[42] + r')+(' + rules[42] + rules[31] + r')+'
-                rule0 = re.compile(rules[0])
                 rule42 = re.compile(rules[42])
                 rule31 = re.compile(rules[31])
             elif not endRules:
